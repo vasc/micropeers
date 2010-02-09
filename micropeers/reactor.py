@@ -2,13 +2,23 @@ import threading
 
 reactor = {'peers': [], 'peers_id': {}}
 
-def add_peer(peer_function, id='default', args=()):
+class BasePeer:
+    def run(self):
+        pass
+    _id_ = ""
+    _base_id_ = ""
+
+def add_peer(peer_class, base_id='default', args=()):
     global reactor
-    if not(id in reactor['peers_id']):
-        reactor['peers_id'][id] = 0
-    full_id = id + '_' + str(reactor['peers_id'][id])
-    reactor['peers_id'][id] += 1
-    peer = { 'function': peer_function, 'id': full_id, 'base_id': id, 'args': args}
+    if not(base_id in reactor['peers_id']):
+        reactor['peers_id'][base_id] = 0
+    full_id = base_id + '_' + str(reactor['peers_id'][base_id])
+    reactor['peers_id'][base_id] += 1
+    print peer_class
+    peer_class = peer_class()
+    peer_class._id_ = full_id
+    peer_class.__base_id__ = base_id
+    peer = { 'class': peer_class, 'args': args}
     reactor['peers'].append(peer)
 
 
@@ -16,7 +26,7 @@ def run():
     global reactor
     threads = []
     for peer in reactor['peers']:
-        t = threading.Thread(target = peer['function'], name = peer['id'], args = peer['args'])
+        t = threading.Thread(target = peer['class'].run, name = peer['class']._id_, args = peer['args'])
         threads.append(t)
         t.start()
     for t in threads:
