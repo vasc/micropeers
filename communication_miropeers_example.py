@@ -1,23 +1,24 @@
 #!/usr/bin/python
 
-from micropeers import communication
+from micropeers import communication, reactor
 
-def communication_first(id):
-    for i in range(1..1000):
-        print '.',
-    print ''
-    communication.send_message({dest: 'second', msg: 'done', type: communication.single_receiver})
+class CommunicationFirst:
+    def __init__(self):
+        for i in range(1, 40):
+            print '.',
+        print ''
+        communication.send_message(msg = 'done', dest = 'second.run')
 
-def communication_second(id):
-    communication.receive_message({sender: 'first', msg: 'done'})
-    for i in range(1..1000):
-        print '*',
-    print ''
+class CommunicationSecond:
+    def run(self, msg, sender):
+        for i in range(1, 40):
+            print '*',
+        print ''
 
 def main():
     from micropeers import reactor
-    reactor.add_peer({method: communication_second, id: 'second'})
-    reactor.add_peer({method: communication_first, id: 'first'})
+    reactor.add_peer(method = CommunicationSecond, id = 'second')
+    reactor.add_peer(method = CommunicationFirst, id = 'first')
     reactor.run()
     print '::all pears exited'
 
