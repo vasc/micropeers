@@ -7,6 +7,7 @@ class Dummy(reactor.BasePeer):
         for i in range(1, 40):
             print '.',
         print '-'
+        self.exit()
 
 def main():
     print 'Running dummy example...'

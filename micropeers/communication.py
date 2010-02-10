@@ -8,8 +8,8 @@ def send_message(msg = '', peer_id = '.*', method = 'run'):
     peers = reactor.reactor['peers']
     sender = threading.current_thread().name
     for peer in peers:
-        if re.search(peer_id, peer['class']._id_):
-            reactor.thread_wrapper(getattr(peer['class'], method), (msg, sender))
+        if re.search(peer_id, peer._id_):
+            reactor.thread_wrapper(getattr(peer, method), (msg, sender))
 
 
 def request(peer, method):
