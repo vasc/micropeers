@@ -8,13 +8,17 @@ class BasePeer:
     _id_ = ""
     _base_id_ = ""
 
-def add_peer(peer_class, base_id='default', args=()):
+
+def add_peer(peer_class, base_id='default', args=(), id=''):
     global reactor
-    if not(base_id in reactor['peers_id']):
-        reactor['peers_id'][base_id] = 0
-    full_id = base_id + '_' + str(reactor['peers_id'][base_id])
-    reactor['peers_id'][base_id] += 1
-    print peer_class
+    if id == '':
+        if not(base_id in reactor['peers_id']):
+            reactor['peers_id'][base_id] = 0
+        full_id = base_id + '_' + str(reactor['peers_id'][base_id])
+        reactor['peers_id'][base_id] += 1
+    else:
+        base_id = id
+        full_id = id
     peer_class = peer_class()
     peer_class._id_ = full_id
     peer_class.__base_id__ = base_id
@@ -26,9 +30,14 @@ def run():
     global reactor
     threads = []
     for peer in reactor['peers']:
-        t = threading.Thread(target = peer['class'].run, name = peer['class']._id_, args = peer['args'])
+        t = threading.Thread(target = thread_wrapper, name = peer['class']._id_, kwargs = {'target': peer['class'].run, 'args': peer['args']})
         threads.append(t)
         t.start()
     for t in threads:
         t.join()
+
+
+def thread_wrapper(target, args):
+    #future thread wrapper code
+    target(*args)
 
