@@ -3,7 +3,7 @@ from Queue import Queue
 
 reactor = {'peers': [], 'peers_id': {}, 'task_queue': Queue(0), 'clock': 0}
 
-sync = {'thread_limit_sem': threading.Semaphore(1), 'threads': [], 'exit_cond': threading.Condition()}
+sync = {'thread_limit_sem': threading.Semaphore(1), 'threads': [], 'exit_event': threading.Event()}
 
 class BasePeer:
     _id_ = ""
@@ -35,9 +35,7 @@ def add_peer(peer_class, base_id='default', args=(), id=''):
 def exit_peer(peer):
     reactor['peers'].remove(peer)
     if len(reactor['peers']) == 0:
-        sync['exit_cond'].acquire()
-        sync['exit_cond'].notify()
-        sync['exit_cond'].release()
+        sync['exit_event'].set()
 
 
 def run():
@@ -48,8 +46,7 @@ def run():
     t.setDaemon(True)
     threads.append(t)
     t.start()
-    sync['exit_cond'].acquire()
-    sync['exit_cond'].wait()
+    sync['exit_event'].wait()
 
 
 def task_pool():

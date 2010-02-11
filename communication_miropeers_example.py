@@ -8,12 +8,14 @@ class CommunicationFirst(reactor.BasePeer):
             print '.',
         print ''
         communication.send_message(peer_id = 'second_*', method = 'start')
+        self.exit()
 
 class CommunicationSecond(reactor.BasePeer):
     def start(self, msg, sender):
         for i in range(1, 40):
             print '*',
         print ''
+        self.exit()
 
 def main():
     from micropeers import reactor
