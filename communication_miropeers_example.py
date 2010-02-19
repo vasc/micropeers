@@ -1,13 +1,12 @@
 #!/usr/bin/python
-
-from micropeers import communication, reactor
+from micropeers import reactor
 
 class CommunicationFirst(reactor.BasePeer):
     def run(self):
         for i in range(1, 40):
             print '.',
         print ''
-        communication.send_message(peer_id = 'second_*', method = 'start')
+        self.send_message(destination_id = 'second_*', method = 'start')
         self.exit()
 
 class CommunicationSecond(reactor.BasePeer):
@@ -18,10 +17,10 @@ class CommunicationSecond(reactor.BasePeer):
         self.exit()
 
 def main():
-    from micropeers import reactor
-    reactor.add_peer(peer_class = CommunicationSecond, id = 'second')
-    reactor.add_peer(peer_class = CommunicationFirst, id = 'first')
-    reactor.run()
+    r = reactor.Reactor()
+    r.add_peer(peer_class = CommunicationSecond, id = 'second')
+    r.add_peer(peer_class = CommunicationFirst, id = 'first')
+    r.run()
     print '::all pears exited'
 
 if __name__ == "__main__":

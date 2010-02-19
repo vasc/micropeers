@@ -1,70 +1,66 @@
 import threading, sys
+from communication import BaseCommunication
 from Queue import Queue
+import taskmanager
 
-reactor = {'peers': [], 'peers_id': {}, 'task_queue': Queue(0), 'clock': 0}
 
-sync = {'thread_limit_sem': threading.Semaphore(1), 'threads': [], 'exit_event': threading.Event()}
-
-class BasePeer:
-    _id_ = ""
-    _base_id_ = ""
+class BasePeer(BaseCommunication):
+    _id_ = None
+    _base_id_ = None
 
     def run(self):
         pass
 
     def exit(self):
-        exit_peer(self)
+        self.__reactor__.exit_peer(self)
 
 
-def add_peer(peer_class, base_id='default', args=(), id=''):
-    if id == '':
-        if not(base_id in reactor['peers_id']):
-            reactor['peers_id'][base_id] = 0
-        full_id = base_id + '_' + str(reactor['peers_id'][base_id])
-        reactor['peers_id'][base_id] += 1
-    else:
-        base_id = id
-        full_id = id
-    peer = peer_class()
-    peer._id_ = full_id
-    peer.__base_id__ = base_id
-    reactor['peers'].append(peer)
-    add_task(target = peer.run, args = args, name = peer._id_)
+class Reactor:
+    peers = None
+    peers_id = None
+    task_manager = None
+    task_manager_thread = None
+    exit_event = None
+    #clock = 0
+   
+    def __init__(self):
+        self.peers = []
+        self.peers_id = {}
+        self.task_manager = taskmanager.Manager()
+        self.exit_event = threading.Event()
 
+    def add_peer(self, peer_class, base_id='default', args=(), id=''):
+        if id == '':
+            if not(base_id in self.peers_id):
+                self.peers_id[base_id] = 0
+            full_id = base_id + '_' + str(self.peers_id[base_id])
+            self.peers_id[base_id] += 1
+        else:
+            base_id = id
+            full_id = id
+        peer = peer_class()
+        peer._id_ = full_id
+        peer.__base_id__ = base_id
+        peer.__reactor__ = self
+        self.peers.append(peer)
+        self.add_task(target = peer.run, args = args, name = peer._id_)
 
-def exit_peer(peer):
-    reactor['peers'].remove(peer)
-    if len(reactor['peers']) == 0:
-        sync['exit_event'].set()
+    def exit_peer(self, peer):
+        self.peers.remove(peer)
+        if len(self.peers) == 0:
+            self.exit_event.set()
 
-
-def run():
-    if len(reactor['peers']) == 0:
-        return
-    threads = sync['threads']
-    t = threading.Thread(target = task_pool, name = '_task_pool')
-    t.setDaemon(True)
-    threads.append(t)
-    t.start()
-    sync['exit_event'].wait()
-
-
-def task_pool():
-    threads = sync['threads']
-    while(True):
-        sync['thread_limit_sem'].acquire()
-        task = reactor['task_queue'].get()
-        t = threading.Thread(target = thread_wrapper, name = task['name'], kwargs = {'target': task['target'], 'args': task['args']})
+    def run(self):
+        if len(self.peers) == 0:
+            return
+        t = threading.Thread(target = self.task_manager.task_pool, name = '_task_pool')
         t.setDaemon(True)
-        threads.append(t)
+        self.task_manager_thread = t
         t.start()
+        self.exit_event.wait()
 
+    def add_task(self, target, args, name):
+        self.task_manager.add_task({'target': target, 'args': args, 'name': name})
 
-def add_task(target, args, name, clock = reactor['clock']):
-    reactor['task_queue'].put({'target': target, 'args': args, 'name': name, 'clock': clock})
-
-
-def thread_wrapper(target, args):
-    target(*args)
-    sync['thread_limit_sem'].release()
+    
 

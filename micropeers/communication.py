@@ -1,19 +1,21 @@
-from micropeers import reactor
 import threading
 import re
 
-#must have a indirection mechanism so that only the main thread starts other threads
-#necessary for clarification and cross network requests
-def send_message(msg = '', peer_id = '.*', method = 'run'):
-    peers = reactor.reactor['peers']
-    sender = threading.current_thread().name
-    for peer in peers:
-        if re.search(peer_id, peer._id_):
-            reactor.thread_wrapper(getattr(peer, method), (msg, sender))
 
+class BaseCommunication():
+    __reactor__ = None
 
-def request(peer, method):
-    '''In a request a message is sent but a return value is expected
+    def send_message(self, msg = '', destination_id = '.*', method = 'run'):
+        if not self.__reactor__:
+            raise UnboundLocalError
+        reactor = self.__reactor__
+
+        sender = self._id_
+        for peer in reactor.peers:
+            if re.search(destination_id, peer._id_):
+                reactor.add_task(target=getattr(peer, method), args=(msg, sender), name="send_message")
+
+    def request(reactor, peer, method):
+        '''When a request a message is sent but a return value is expected
 the function will block waiting for the answer'''
-    raise NotImplementedError
-
+        raise NotImplementedError

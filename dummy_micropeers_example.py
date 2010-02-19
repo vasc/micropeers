@@ -11,9 +11,10 @@ class Dummy(reactor.BasePeer):
 
 def main():
     print 'Running dummy example...'
+    r = reactor.Reactor()
     for i in range(1, 20):
-        reactor.add_peer(Dummy)
-    reactor.run()
+        r.add_peer(Dummy)
+    r.run()
     print '::all pears exited'
 
 if __name__ == "__main__":
