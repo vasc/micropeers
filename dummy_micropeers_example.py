@@ -11,7 +11,7 @@ class Dummy(reactor.BasePeer):
 
 def main():
     print 'Running dummy example...'
-    r = reactor.Reactor()
+    r = reactor.Reactor(concurrent_tasks_limit = 10)
     for i in range(1, 20):
         r.add_peer(Dummy)
     r.run()

@@ -23,10 +23,10 @@ class Reactor:
     exit_event = None
     #clock = 0
    
-    def __init__(self):
+    def __init__(self, concurrent_tasks_limit = 1, allowed_tasks_limit = sys.maxint):
         self.peers = []
         self.peers_id = {}
-        self.task_manager = taskmanager.Manager()
+        self.task_manager = taskmanager.Manager(concurrent_tasks_limit, allowed_tasks_limit)
         self.exit_event = threading.Event()
 
     def add_peer(self, peer_class, base_id='default', args=(), id=''):
@@ -43,7 +43,7 @@ class Reactor:
         peer.__base_id__ = base_id
         peer.__reactor__ = self
         self.peers.append(peer)
-        self.add_task(target = peer.run, args = args, name = peer._id_)
+        self.add_task(taskmanager.Task(peer.run, *args))#, name = peer._id_)
 
     def exit_peer(self, peer):
         self.peers.remove(peer)
@@ -59,8 +59,21 @@ class Reactor:
         t.start()
         self.exit_event.wait()
 
-    def add_task(self, target, args, name):
-        self.task_manager.add_task({'target': target, 'args': args, 'name': name})
+    def send_message(self, dest, msg, sender):
+        task = taskmanager.Message(dest, msg, sender)
+        self.task_manager.add_task(task)
+        
+    def make_request(self, dest, *args):
+        task = taskmanager.Request(dest, *args)
+        self.task_manager.create_request(task.request_id)
+        self.task_manager.add_task(task)
+        self.task_manager.requests[task.request_id]['event'].wait()
+        value = requests[task.request_id]['value']
+        del requests[task.request_id]
+        return value
+
+    def add_task(self, task):
+        self.task_manager.add_task(task)
 
     
 
