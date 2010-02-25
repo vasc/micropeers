@@ -9,24 +9,24 @@ class Task:
     args = None
 
     def run(self):
-        self.return_value = self.target(*self.args)
+        self.return_value = self.target(*self.args[0], **self.args[1])
         return self.return_value
 
-    def __init__(self, target, *args):
+    def __init__(self, target, args):
        self.target = target
        self.args = args
 
-class Message(Task):
+class AsyncRequest(Task):
     pass
+
+class SyncRequest(Task):
+    def __init__(self, target, args):
+        Task.__init__(self, target, args)
+        self.request_id = uuid.uuid4()
 
 class Dummy(Task):
     def __init__(self, request_id):
         self.request_id = request_id
-
-class Request(Task):
-    def __init__(self, target, *args):
-        Task.__init__(self, target, *args)
-        self.request_id = uuid.uuid4()
 
 class Manager:
     #running_tasks = None
@@ -65,11 +65,21 @@ class Manager:
     def task_runner(self, task):
         if isinstance(task, Dummy):
             self.requests[task.request_id]['event'].set()
-        elif isinstance(task, Request):
-            self.requests[task.request_id]['value'] = task.run()
-            self.add_task(Dummy(task.request_id))
-            self.concurrent_tasks_limit.release()
-        elif isinstance(task, Task):
+        elif isinstance(task, SyncRequest):
+            try:
+                value = task.run()
+            except DelayedError:
+                self.add_task(task)
+                self.concurrent_tasks_limit.release()
+            except Exception as e:
+                self.requests[task.request_id]['exception'] = e
+                self.add_task(Dummy(task.request_id))
+                self.concurrent_tasks_limit.release()
+            else:
+                self.requests[task.request_id]['value'] = value
+                self.add_task(Dummy(task.request_id))
+                self.concurrent_tasks_limit.release()
+        elif isinstance(task, (AsyncRequest, Task)):
             task.run()
             self.concurrent_tasks_limit.release()
         else:
@@ -90,7 +100,7 @@ class Manager:
             self.allowed_tasks_limit.release()
 
     def create_request(self, id):
-        self.requests[id] = {'event': threading.Event(), 'value': None}
+        self.requests[id] = {'event': threading.Event(), 'value': None, 'exception': None}
         return id
 
 
