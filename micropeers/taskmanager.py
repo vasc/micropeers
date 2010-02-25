@@ -3,6 +3,9 @@ from Queue import Queue
 import sys
 import uuid
 
+class DelayError(Exception):
+    pass
+
 class Task:
     name = "default_task_name"
     target = None
@@ -68,15 +71,17 @@ class Manager:
         elif isinstance(task, SyncRequest):
             try:
                 value = task.run()
-            except DelayedError:
+            except DelayError:
                 self.add_task(task)
                 self.concurrent_tasks_limit.release()
+                print 'hi1'
             except Exception as e:
                 self.requests[task.request_id]['exception'] = e
                 self.add_task(Dummy(task.request_id))
                 self.concurrent_tasks_limit.release()
             else:
                 self.requests[task.request_id]['value'] = value
+                print 'hi2: %s %s %s' % (value, task.target, task.args)
                 self.add_task(Dummy(task.request_id))
                 self.concurrent_tasks_limit.release()
         elif isinstance(task, (AsyncRequest, Task)):

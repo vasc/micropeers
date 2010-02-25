@@ -13,7 +13,7 @@ def main():
     print 'Running dummy example...'
     r = reactor.Reactor(concurrent_tasks_limit = 10)
     for i in range(1, 20):
-        r.add_peer(Dummy)
+        r.add_peer(Dummy())
     r.run()
     print '::all pears exited'
 
